@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 export const Navbar = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const location = useLocation();
-  
+
   const navLinks = [
     { name: 'Feed', path: '/', icon: Home },
     { name: 'Create', path: '/create', icon: PlusSquare },
@@ -24,7 +24,7 @@ export const Navbar = () => {
               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center block">
                 <span className="text-white font-bold text-xl leading-none">K</span>
               </div>
-              <span className="font-bold text-xl text-gray-900 tracking-tight">KarmaChain</span>
+              <span className="font-bold text-xl text-gray-900 tracking-tight">KarmaCoin</span>
             </Link>
           </div>
 
@@ -36,23 +36,24 @@ export const Navbar = () => {
                 <Link
                   key={link.name}
                   to={link.path}
-                  className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors ${
-                    isActive(link.path) 
-                      ? 'text-blue-600 relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600 after:rounded-full' 
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors ${isActive(link.path)
+                      ? 'text-blue-600 relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600 after:rounded-full'
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="font-medium">{link.name}</span>
                 </Link>
               );
             })}
-            <div className="pl-4 border-l border-gray-100 flex items-center space-x-3">
-              <div className="text-right">
-                <div className="text-sm font-semibold text-gray-900">450 KC</div>
-                <div className="text-xs text-blue-600 font-medium">98 Trust</div>
+            <div className="pl-6 border-l border-gray-200 flex items-center space-x-4">
+              <div className="text-right flex flex-col justify-center">
+                <div className="text-sm font-bold text-gray-900 leading-tight">450 <span className="text-xs text-gray-500 font-medium">KC</span></div>
+                <div className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md mt-0.5 border border-blue-100">
+                  Trusted Member
+                </div>
               </div>
-              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center border-2 border-white shadow-sm block">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center border border-white shadow-md shadow-blue-500/20 block transform transition-transform hover:scale-105 cursor-pointer">
                 <span className="text-white font-bold text-sm leading-none">U</span>
               </div>
             </div>
@@ -81,18 +82,17 @@ export const Navbar = () => {
                   key={link.name}
                   to={link.path}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center space-x-3 px-3 py-3 rounded-xl transition-colors ${
-                    isActive(link.path)
+                  className={`flex items-center space-x-3 px-3 py-3 rounded-xl transition-colors ${isActive(link.path)
                       ? 'bg-blue-50 text-blue-600 font-medium'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                    }`}
                 >
                   <Icon className={`w-5 h-5 ${isActive(link.path) ? 'text-blue-600' : 'text-gray-400'}`} />
                   <span>{link.name}</span>
                 </Link>
               );
             })}
-            
+
             <div className="mt-4 px-3 py-4 border-t border-gray-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 block">
