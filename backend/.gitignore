@@ -1,0 +1,57 @@
+# 🔐 Environment variables
+.env
+.env.*
+!.env.example
+
+# 📦 Node modules
+node_modules/
+
+# 📝 Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 🗃️ Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# 📂 Coverage reports
+coverage/
+
+# 🛠️ Build / dist
+dist/
+build/
+
+# 🧪 Optional test files
+test/
+tests/
+
+# 💻 OS files
+.DS_Store
+Thumbs.db
+
+# 🧑‍💻 IDE / Editor
+.vscode/
+.idea/
+
+# 🐳 Docker
+docker-compose.override.yml
+
+# 🔒 Secrets / keys
+*.pem
+*.key
+
+# 📦 Optional cache
+.cache/
+.tmp/
+
+# 🚫 MongoDB local files (if used)
+data/
+*.db
+
+# 📄 Misc
+*.tgz
