@@ -25,6 +25,10 @@ exports.createTask = async (req, res) => {
       status: "open"
     });
 
+    // 🔥 SOCKET: broadcast new task
+    const io = req.app.get("io");
+    io.emit("new_task", task);
+
     return res.status(201).json(task);
 
   } catch (error) {
@@ -38,7 +42,10 @@ exports.createTask = async (req, res) => {
 // =======================
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find().populate("owner assignedTo").sort({ createdAt: -1 });
+    const tasks = await Task.find()
+      .populate("owner assignedTo")
+      .sort({ createdAt: -1 });
+
     return res.json(tasks);
 
   } catch (error) {
@@ -56,7 +63,8 @@ exports.getTaskById = async (req, res) => {
       return res.status(400).json({ msg: "Invalid task ID" });
     }
 
-    const task = await Task.findById(req.params.id).populate("owner assignedTo");
+    const task = await Task.findById(req.params.id)
+      .populate("owner assignedTo");
 
     if (!task) {
       return res.status(404).json({ msg: "Task not found" });
@@ -71,7 +79,7 @@ exports.getTaskById = async (req, res) => {
 
 
 // =======================
-// ACCEPT TASK
+// ACCEPT TASK (🔥 ATOMIC FIX)
 // =======================
 exports.acceptTask = async (req, res) => {
   try {
@@ -81,25 +89,32 @@ exports.acceptTask = async (req, res) => {
       return res.status(400).json({ msg: "Invalid userId" });
     }
 
-    const task = await Task.findById(req.params.id);
+    // 🔥 ATOMIC OPERATION (no race condition)
+    const task = await Task.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        status: "open",
+        owner: { $ne: userId } // prevent self-accept
+      },
+      {
+        $set: {
+          assignedTo: userId,
+          status: "in_progress"
+        }
+      },
+      { new: true }
+    );
 
+    // ❌ If null → already taken or invalid
     if (!task) {
-      return res.status(404).json({ msg: "Task not found" });
+      return res.status(400).json({
+        msg: "Task already taken or cannot accept your own task"
+      });
     }
 
-    if (task.status !== "open") {
-      return res.status(400).json({ msg: "Task already taken" });
-    }
-
-    // Prevent owner from accepting their own task
-    if (task.owner.toString() === userId) {
-      return res.status(400).json({ msg: "You cannot accept your own task" });
-    }
-
-    task.assignedTo = userId;
-    task.status = "in_progress";
-
-    await task.save();
+    // 🔥 SOCKET: notify specific user
+    const io = req.app.get("io");
+    io.to(userId.toString()).emit("task_accepted", task);
 
     return res.json(task);
 
@@ -137,7 +152,10 @@ exports.deleteTask = async (req, res) => {
     task.status = "cancelled";
     await task.save();
 
-    return res.json({ msg: "Task cancelled successfully", task });
+    return res.json({
+      msg: "Task cancelled successfully",
+      task
+    });
 
   } catch (error) {
     return res.status(500).json({ error: error.message });
