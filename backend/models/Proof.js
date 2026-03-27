@@ -5,7 +5,8 @@ const proofSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   image: String,
   text: String,
-  aiScore: Number
+  aiScore: Number,
+  rating:Number,
 }, { timestamps: true });
 
 module.exports = mongoose.model("Proof", proofSchema);
