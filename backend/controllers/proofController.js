@@ -5,7 +5,7 @@ const { validateProof } = require("../validators/proofValidator");
 const { giveReward } = require("../services/rewardService");
 const { verifyProofAI } = require("../services/aiService");
 const { sendNotification } = require("../services/notificationService");
-
+const { getTrustScore } = require("../services/trustService");
 
 const logger = require("../utils/logger");
 
@@ -16,29 +16,21 @@ exports.uploadProof = async (req, res) => {
   try {
     const { taskId, userId, image, text } = req.body;
 
-    // ✅ Validation
     const error = validateProof(req.body);
     if (error) {
       logger.error(error);
       return res.status(400).json({ error });
     }
 
-    // ✅ Check task exists
     const task = await Task.findById(taskId);
     if (!task) {
       logger.error("Task not found");
       return res.status(404).json({ msg: "Task not found" });
     }
 
-    // ✅ AI validation (Groq)
     console.log("🤖 Calling AI now...");
-    const aiScore = await verifyProofAI(
-  image,
-  text,
-  task.description
-);
+    const aiScore = await verifyProofAI(image, text, task.description);
 
-    // ✅ Create proof
     const proof = await Proof.create({
       task: taskId,
       user: userId,
@@ -48,7 +40,6 @@ exports.uploadProof = async (req, res) => {
     });
 
     logger.info(`Proof uploaded with AI score: ${aiScore}`);
-
     res.status(201).json(proof);
 
   } catch (error) {
@@ -58,10 +49,61 @@ exports.uploadProof = async (req, res) => {
 };
 
 // =========================
+// GET PROOFS FOR A TASK
+// (used by the task owner to review submissions)
+// =========================
+exports.getProofsByTask = async (req, res) => {
+  try {
+    const proofs = await Proof.find({ task: req.params.taskId })
+      .populate("user", "name trustScore coins")
+      .sort({ createdAt: -1 });
+
+    res.json(proofs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// =========================
+// GET ALL TASKS OWNED BY USER + THEIR PROOFS
+// (single call for the "My Tasks" inbox page)
+// =========================
+exports.getMyTasksWithProofs = async (req, res) => {
+  try {
+    const { ownerId } = req.params;
+
+    const tasks = await Task.find({ owner: ownerId })
+      .sort({ createdAt: -1 });
+
+    const taskIds = tasks.map(t => t._id);
+
+    const proofs = await Proof.find({ task: { $in: taskIds } })
+      .populate("user", "name trustScore coins")
+      .sort({ createdAt: -1 });
+
+    // Group proofs by taskId
+    const proofsByTask = {};
+    proofs.forEach(p => {
+      const key = p.task.toString();
+      if (!proofsByTask[key]) proofsByTask[key] = [];
+      proofsByTask[key].push(p);
+    });
+
+    // Attach proofs to each task
+    const result = tasks.map(t => ({
+      ...t.toObject(),
+      proofs: proofsByTask[t._id.toString()] || []
+    }));
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// =========================
 // VERIFY PROOF + REWARD
 // =========================
-const { getTrustScore } = require("../services/trustService");
-
 exports.verifyProof = async (req, res) => {
   try {
     const { isApproved } = req.body;
@@ -73,40 +115,32 @@ exports.verifyProof = async (req, res) => {
       return res.status(404).json({ msg: "Proof not found" });
     }
 
-    // ❌ If rejected by human
     if (!isApproved) {
+      proof.status = "rejected";
+      await proof.save();
       logger.info("Proof rejected by user");
       return res.json({ msg: "Proof rejected by user" });
     }
 
-    // ✅ Get trust score
     const trustScore = await getTrustScore(proof.user);
-
-    // ✅ Convert human approval into score
     const { rating } = req.body;
 
-    // Validate rating
     if (!rating || rating < 1 || rating > 5) {
-        return res.status(400).json({
-            msg: "Rating must be between 1 and 5"
-        });
+      return res.status(400).json({ msg: "Rating must be between 1 and 5" });
     }
+
     proof.rating = rating;
+    proof.status = "approved";
     await proof.save();
 
-    // Convert rating to score
     const humanScore = rating * 20;
-
-    // ✅ Calculate final score
     const finalScore =
       proof.aiScore * 0.4 +
       humanScore * 0.4 +
       trustScore * 0.2;
 
-    // ❌ Reject if too low
     if (finalScore < 50) {
       logger.info("Final score too low, proof rejected");
-
       return res.status(400).json({
         msg: "Proof rejected due to low confidence",
         aiScore: proof.aiScore,
@@ -115,7 +149,6 @@ exports.verifyProof = async (req, res) => {
       });
     }
 
-    // ⚠️ Optional AI safety (extra layer)
     if (proof.aiScore < 20) {
       logger.info("Extremely low AI score");
       return res.status(400).json({
@@ -123,9 +156,7 @@ exports.verifyProof = async (req, res) => {
       });
     }
 
-    // ✅ Update task
     const task = await Task.findById(proof.task);
-
     if (!task) {
       logger.error("Task not found during verification");
       return res.status(404).json({ msg: "Task not found" });
@@ -134,13 +165,9 @@ exports.verifyProof = async (req, res) => {
     task.status = "completed";
     await task.save();
 
-    // ✅ Dynamic reward
-    let rewardAmount = 50;
-
-    if (finalScore > 80) {
-      rewardAmount = 80;
-    }
-
+    // Use the task's actual reward value — give a 20% bonus if score > 80
+    const baseReward = task.reward || 50;
+    const rewardAmount = finalScore > 80 ? Math.round(baseReward * 1.2) : baseReward;
     await giveReward(proof.user, rewardAmount, proof.task);
 
     logger.info("Proof verified with hybrid scoring");
@@ -152,17 +179,17 @@ exports.verifyProof = async (req, res) => {
       finalScore,
       reward: rewardAmount
     });
+
     try {
-  sendNotification(proof.user, "You earned reward!");
-} catch (err) {
-  console.log("Notification failed:", err.message);
-}
+      sendNotification(proof.user, "You earned reward!");
+    } catch (err) {
+      console.log("Notification failed:", err.message);
+    }
 
   } catch (error) {
-  logger.error(error.message);
-
-  if (!res.headersSent) {
-    return res.status(500).json({ error: error.message });
+    logger.error(error.message);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: error.message });
+    }
   }
-}
 };

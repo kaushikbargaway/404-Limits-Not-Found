@@ -5,8 +5,13 @@ const proofSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   image: String,
   text: String,
-  aiScore: Number,
-  rating:Number,
+  aiScore: { type: Number, default: 50 },
+  rating: Number,
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending"
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Proof", proofSchema);

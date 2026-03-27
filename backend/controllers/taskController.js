@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 // =======================
 exports.createTask = async (req, res) => {
   try {
-    const { title, description, ownerId } = req.body;
+    const { title, description, ownerId, reward, minTrustScore } = req.body;
 
     if (!title || !ownerId) {
       return res.status(400).json({ msg: "Title and ownerId required" });
@@ -20,6 +20,8 @@ exports.createTask = async (req, res) => {
       title,
       description,
       owner: ownerId,
+      reward: reward || 0,
+      minTrustScore: minTrustScore || 0,
       status: "open"
     });
 
@@ -32,12 +34,35 @@ exports.createTask = async (req, res) => {
 
 
 // =======================
-// GET TASKS
+// GET ALL TASKS
 // =======================
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find().populate("owner assignedTo");
+    const tasks = await Task.find().populate("owner assignedTo").sort({ createdAt: -1 });
     return res.json(tasks);
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+
+// =======================
+// GET TASK BY ID
+// =======================
+exports.getTaskById = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ msg: "Invalid task ID" });
+    }
+
+    const task = await Task.findById(req.params.id).populate("owner assignedTo");
+
+    if (!task) {
+      return res.status(404).json({ msg: "Task not found" });
+    }
+
+    return res.json(task);
 
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -64,6 +89,11 @@ exports.acceptTask = async (req, res) => {
 
     if (task.status !== "open") {
       return res.status(400).json({ msg: "Task already taken" });
+    }
+
+    // Prevent owner from accepting their own task
+    if (task.owner.toString() === userId) {
+      return res.status(400).json({ msg: "You cannot accept your own task" });
     }
 
     task.assignedTo = userId;
@@ -96,26 +126,18 @@ exports.deleteTask = async (req, res) => {
       return res.status(404).json({ msg: "Task not found" });
     }
 
-    // ✅ Only owner can delete
     if (task.owner.toString() !== ownerId) {
       return res.status(403).json({ msg: "Not authorized" });
     }
 
-    // ❌ Cannot delete completed task
     if (task.status === "completed") {
-      return res.status(400).json({
-        msg: "Cannot delete completed task"
-      });
+      return res.status(400).json({ msg: "Cannot delete completed task" });
     }
 
-    // 🔥 Better approach → cancel instead of delete
     task.status = "cancelled";
     await task.save();
 
-    return res.json({
-      msg: "Task cancelled successfully",
-      task
-    });
+    return res.json({ msg: "Task cancelled successfully", task });
 
   } catch (error) {
     return res.status(500).json({ error: error.message });

@@ -2,29 +2,61 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
+import { createTask } from '../api/taskService';
+import { useAuth } from '../context/AuthContext';
+import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 export const CreateTask = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     reward: '',
     minTrustScore: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Task Created:', formData);
-    // API Call Placeholder
-    navigate('/');
+    setLoading(true);
+    setError(null);
+
+    try {
+      await createTask({
+        title: formData.title,
+        description: formData.description,
+        reward: Number(formData.reward) || 0,
+        minTrustScore: Number(formData.minTrustScore) || 0,
+        ownerId: currentUser._id,
+      });
+
+      setSuccess(true);
+      setTimeout(() => navigate('/'), 1500);
+    } catch (err) {
+      setError(err.response?.data?.msg || err.response?.data?.error || 'Failed to create task.');
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  if (success) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 flex flex-col items-center text-center">
+        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+          <CheckCircle className="w-9 h-9 text-emerald-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Task Created!</h2>
+        <p className="text-gray-500">Redirecting you to the feed...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -66,7 +98,7 @@ export const CreateTask = () => {
                 rows={4}
                 value={formData.description}
                 onChange={handleChange}
-                placeholder="Describe what needs to be done and how the proof of work should look like..."
+                placeholder="Describe what needs to be done and how the proof of work should look..."
                 className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-lg py-2.5 px-3 border bg-white resize-none"
               />
             </div>
@@ -96,7 +128,7 @@ export const CreateTask = () => {
 
               <div>
                 <label htmlFor="minTrustScore" className="block text-sm font-medium text-gray-700 mb-1">
-                  Minimum Trust Score required
+                  Minimum Trust Score Required
                 </label>
                 <input
                   type="number"
@@ -104,6 +136,7 @@ export const CreateTask = () => {
                   name="minTrustScore"
                   required
                   min="0"
+                  max="100"
                   value={formData.minTrustScore}
                   onChange={handleChange}
                   className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-lg py-2.5 px-3 border bg-white"
@@ -112,12 +145,24 @@ export const CreateTask = () => {
               </div>
             </div>
 
+            {error && (
+              <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {error}
+              </div>
+            )}
+
             <div className="pt-4 flex justify-end space-x-3 border-t border-gray-100">
-              <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+              <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={loading}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary">
-                Confirm & Create Task
+              <Button type="submit" variant="primary" disabled={loading}>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </span>
+                ) : 'Confirm & Create Task'}
               </Button>
             </div>
           </form>

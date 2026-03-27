@@ -1,17 +1,25 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Shield, ArrowRight } from 'lucide-react';
+import { Shield, ArrowRight, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const Login = () => {
-  const [wallet, setWallet] = useState('');
+  const [name, setName] = useState('');
   const navigate = useNavigate();
+  const { login, loading, error, currentUser } = useAuth();
 
-  const handleLogin = (e) => {
+  // Already logged in
+  if (currentUser) return <Navigate to="/" replace />;
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (wallet.trim()) {
-      // Simulate login
+    if (!name.trim()) return;
+    try {
+      await login(name.trim());
       navigate('/');
+    } catch {
+      // error is already in context
     }
   };
 
@@ -35,33 +43,50 @@ export const Login = () => {
         <div className="bg-white py-8 px-4 shadow-xl shadow-gray-200/50 sm:rounded-2xl sm:px-10 border border-gray-100">
           <form className="space-y-6" onSubmit={handleLogin}>
             <div>
-              <label htmlFor="wallet" className="block text-sm font-medium text-gray-700">
-                Wallet Address / Username
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Username / Pseudo-Identity
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Shield className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="wallet"
-                  name="wallet"
+                  id="name"
+                  name="name"
                   type="text"
                   required
-                  value={wallet}
-                  onChange={(e) => setWallet(e.target.value)}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-lg py-3 border bg-gray-50 placeholder-gray-400"
-                  placeholder="Enter your pseudo-identity"
+                  placeholder="Enter your username"
+                  disabled={loading}
                 />
               </div>
+              <p className="mt-1 text-xs text-gray-500">
+                First time? We'll create an account for you automatically.
+              </p>
             </div>
 
+            {error && (
+              <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {error}
+              </div>
+            )}
+
             <div>
-              <Button type="submit" className="w-full py-3 text-base flex justify-center items-center group">
-                Connect & Enter
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <Button
+                type="submit"
+                className="w-full py-3 text-base flex justify-center items-center group"
+                disabled={loading || !name.trim()}
+              >
+                {loading ? 'Connecting...' : 'Connect & Enter'}
+                {!loading && (
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                )}
               </Button>
             </div>
-            
+
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
