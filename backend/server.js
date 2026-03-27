@@ -4,14 +4,18 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 
 const taskRoutes = require("./routes/taskRoutes");
+const proofRoutes = require("./routes/proofRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
+app.use("/api/users", userRoutes);
 
 // Routes
 app.use("/api/tasks", taskRoutes);
+app.use("/api/proofs", proofRoutes);
 
 // DB Connection
 mongoose.connect(process.env.MONGO_URI)
