@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
 
 const proofSchema = new mongoose.Schema({
-  task_id: String,
-  user_id: String,
-  image_url: String,
+  task: { type: mongoose.Schema.Types.ObjectId, ref: "Task" },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  image: String,
   text: String,
-  ai_score: Number
-});
+  aiScore: Number
+}, { timestamps: true });
 
 module.exports = mongoose.model("Proof", proofSchema);
