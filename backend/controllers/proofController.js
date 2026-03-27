@@ -4,6 +4,7 @@ const Task = require("../models/Task");
 const { validateProof } = require("../validators/proofValidator");
 const { giveReward } = require("../services/rewardService");
 const { verifyProofAI } = require("../services/aiService");
+const { sendNotification } = require("../services/notificationService");
 
 
 const logger = require("../utils/logger");
@@ -140,7 +141,7 @@ exports.verifyProof = async (req, res) => {
       rewardAmount = 80;
     }
 
-    await giveReward(proof.user, rewardAmount);
+    await giveReward(proof.user, rewardAmount, proof.task);
 
     logger.info("Proof verified with hybrid scoring");
 
@@ -151,9 +152,17 @@ exports.verifyProof = async (req, res) => {
       finalScore,
       reward: rewardAmount
     });
+    try {
+  sendNotification(proof.user, "You earned reward!");
+} catch (err) {
+  console.log("Notification failed:", err.message);
+}
 
   } catch (error) {
-    logger.error(error.message);
-    res.status(500).json({ error: error.message });
+  logger.error(error.message);
+
+  if (!res.headersSent) {
+    return res.status(500).json({ error: error.message });
   }
+}
 };

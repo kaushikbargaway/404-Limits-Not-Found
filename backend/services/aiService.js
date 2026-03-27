@@ -26,11 +26,11 @@ Instructions:
 - Analyze the image and the claim carefully
 - Check if the image supports the claim
 - Detect inconsistencies or fake proofs
-- Be strict and conservative in scoring.
+- Don't be that strict because this just for trial.
 
 Scoring rules:
 - 0 = completely fake
-- 50 = uncertain
+- 50 to 75 = uncertain to some evidence of completion
 - 100 = fully genuine
 
 Return ONLY a number.`
