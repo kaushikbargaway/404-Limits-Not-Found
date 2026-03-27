@@ -31,7 +31,11 @@ exports.uploadProof = async (req, res) => {
 
     // ✅ AI validation (Groq)
     console.log("🤖 Calling AI now...");
-    const aiScore = await verifyProofAI(text || "");
+    const aiScore = await verifyProofAI(
+  image,
+  text,
+  task.description
+);
 
     // ✅ Create proof
     const proof = await Proof.create({
