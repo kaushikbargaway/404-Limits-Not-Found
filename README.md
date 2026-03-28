@@ -34,29 +34,29 @@ Post a Task → Volunteer Accepts → Submits Proof → AI Scores It → Owner A
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────┐
+┌─────────────────────────────────────────────--┐
 │                 React Frontend                │
-│  (Vite + React Router + Axios + Lucide)      │
+│  (Vite + React Router + Axios + Lucide)       │
 │  Port: 5173                                   │
-│                                               │
-│  Pages: Feed · Create · My Tasks · Profile   │
+│                                               │ 
+│  Pages: Feed · Create · My Tasks · Profile    │
 │  Context: AuthContext (session + localStorage)│
-└──────────────────┬──────────────────────────┘
+└──────────────────┬──────────────────────────--┘
                    │ /api/* (Vite Proxy)
                    ▼
 ┌─────────────────────────────────────────────┐
-│            Node.js / Express Backend          │
-│  Port: 5000                                   │
-│                                               │
-│  REST API → Controllers → Services → Models  │
-│  AI Layer: Groq SDK (multimodal LLM)         │
+│            Node.js / Express Backend        │
+│  Port: 5000                                 │
+│                                             │
+│  REST API → Controllers → Services → Models │
+│  AI Layer: Groq SDK (multimodal LLM)        │
 └──────────────────┬──────────────────────────┘
                    │ Mongoose ODM
                    ▼
 ┌─────────────────────────────────────────────┐
-│               MongoDB Atlas / Local           │
-│  Collections: users · tasks · proofs         │
-│               transactions                   │
+│               MongoDB Atlas / Local         │
+│  Collections: users · tasks · proofs        │
+│               transactions                  │
 └─────────────────────────────────────────────┘
 ```
 
@@ -247,7 +247,7 @@ npm run dev
 
 ---
 
-## 👥 Team
+## 👥 Team SmartIgnite
 
 **404 — Limits Not Found**
 
