@@ -8,14 +8,16 @@ import { CreateTask } from './pages/CreateTask';
 import { TaskDetails } from './pages/TaskDetails';
 import { Profile } from './pages/Profile';
 import { MyTasks } from './pages/MyTasks';
+import { TopContributorBadge } from './components/layout/TopContributorBadge';
 
 // Layout with Navbar
 const AppLayout = () => (
-  <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
+  <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 relative">
     <Navbar />
     <main className="flex-grow w-full">
       <Outlet />
     </main>
+    <TopContributorBadge />
   </div>
 );
 
